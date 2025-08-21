@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import fs from 'fs';
+import cors from "cors";
 import path from 'path';
 import moment from "moment";
 import PDFDocument from 'pdfkit';
@@ -9,8 +10,67 @@ import mongoose from 'mongoose';
 import db from "./model/index.js";
 import dotenv from 'dotenv';
 dotenv.config();
+
+// Validate required environment variables
+const requiredEnvVars = ['MONGO_URL', 'GEMINI_API_KEY'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingEnvVars.join(', '));
+  console.error('Please create a .env file with the required variables');
+  process.exit(1);
+}
+
 const app = express();
 const port = process.env.PORT || 3000;
+
+
+// const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000'];
+
+const allowedOrigins = ['http://localhost:5173'];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+  ],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+  maxAge: 86400, // 24 hours
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.get("/", (req, res) => {
+  res.json({ message: "Welcome to Automate Accounts." });
+});
+
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
+
+
 
 const ReceiptFileData = db.receiptFileInfo;
 const ReceiptData = db.receiptInfo;
@@ -27,14 +87,17 @@ const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || '');
 
 mongoose
   .connect(process.env.MONGO_URL, {
-    // serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 10000,
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
   .then(() => {
     console.log("✅ MongoDB Connected");
   })
-  .catch((err) => console.error("🤷‍♂️ DB Connection Error:", err));
+  .catch((err) => {
+    console.error("🤷‍♂️ DB Connection Error:", err);
+    process.exit(1);
+  });
 
 // Multer setup for file uploads
 const storage = multer.memoryStorage();
@@ -396,7 +459,7 @@ app.post('/api/documents/process', upload.single('document'), async (req, res) =
 
 app.get('/api/documents/receipts', async (req, res) => {
   try {
-    const response = await ReceiptData.find(); // No need for optional chaining here
+    const response = await ReceiptData.find();
 
     // Map and format each receipt
     const simplifiedReceipts = response.map(receipt => {
@@ -428,9 +491,13 @@ app.get('/api/documents/receipts', async (req, res) => {
 });
 
 
-app.get('/api/documents/receipts/:id', async (req, res) => {
+app.get('/api/documents/receipts/:receiptId', async (req, res) => {
   try {
-    const response = await ReceiptData.findById(req?.params?.id); // No need for optional chaining here
+    const response = await ReceiptData.findById(req.params.receiptId);
+
+    if (!response) {
+      return res.status(404).json({ error: 'Receipt not found' });
+    }
 
     const {
       _id,
@@ -450,8 +517,6 @@ app.get('/api/documents/receipts/:id', async (req, res) => {
       __v
     }
 
-
-
     // Send final response
     res.status(200).json({ receiptDetails: StructuredObject });
 
@@ -459,7 +524,6 @@ app.get('/api/documents/receipts/:id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
 
 
 
