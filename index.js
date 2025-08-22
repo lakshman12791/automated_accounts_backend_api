@@ -308,56 +308,57 @@ app.post('/api/receipts/validate', upload.single('file'), async (req, res) => {
       // return res.status(400).json({ message: 'Please Upload Pdf File only' });
     }
 
-    // 1) Check whether the file exists in database
-    const existingFile = await ReceiptFileData.findOne({ file_name: req.file.originalname });
-    if (existingFile && existingFile.is_processed === true) {
-      // 2) If existing file is already processed, respond that file exists
-      return res.status(400).json({ message: 'File already exists' });
-    }
 
-    // 3) Process the file since it is either new or not processed yet
-    const doc = new PDFDocument();
-
-    // Save the uploaded file to disk
-    const outputDir = path.resolve('receipt_directory');
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-    const outputPath = path.join(outputDir, req.file.originalname);
-    fs.writeFileSync(outputPath, req.file.buffer);
-
-
-
-    // 4) Save the file info to receipt file model
-
-    // 4) Save the file info to receipt file model
-    if (existingFile) {
-      await ReceiptFileData.updateOne(
-        { _id: existingFile._id },
-        {
-          $set: {
-            file_path: outputPath,
-            invalid_reason: null,
-            is_processed: true,
-          },
-        }
-      );
-    } else {
-      await ReceiptFileData.create({
-        file_name: req.file.originalname,
-        file_path: outputPath,
-        invalid_reason: null,
-        is_processed: true,
-      });
-    }
 
 
     if (isFileValid === true) {
+      // 1) Check whether the file exists in database
+      const existingFile = await ReceiptFileData.findOne({ file_name: req.file.originalname });
+      if (existingFile && existingFile.is_processed === true) {
+        // 2) If existing file is already processed, respond that file exists
+        return res.status(400).json({ message: 'File already exists' });
+      }
+
+      // 3) Process the file since it is either new or not processed yet
+      const doc = new PDFDocument();
+
+      // Save the uploaded file to disk
+      const outputDir = path.resolve('receipt_directory');
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+      const outputPath = path.join(outputDir, req.file.originalname);
+      fs.writeFileSync(outputPath, req.file.buffer);
+
+
+
+      // 4) Save the file info to receipt file model
+
+      // 4) Save the file info to receipt file model
+      if (existingFile) {
+        await ReceiptFileData.updateOne(
+          { _id: existingFile._id },
+          {
+            $set: {
+              file_path: outputPath,
+              invalid_reason: null,
+              is_processed: true,
+            },
+          }
+        );
+      } else {
+        await ReceiptFileData.create({
+          file_name: req.file.originalname,
+          file_path: outputPath,
+          invalid_reason: null,
+          is_processed: true,
+        });
+      }
       // 5) Respond with extracted data
-      res.json({ "message": "Uploaded File is Valid" });
+      res.json({ isValid: true, "message": "Uploaded File is Valid" });
     }
     else {
-      res.json({ "message": "Uploaded File is Invalid and Updated the status for invalid_reason" });
+      res.json({ isValid: false, "message": "Uploaded File is Invalid and Updated the status for invalid_reason" });
     }
 
   } catch (error) {
