@@ -136,7 +136,7 @@ async function processImage(file, prompt) {
 }
 
 // Routes
-app.post('/api/documents/upload-receipt', upload.single('document'), async (req, res) => {
+app.post('/api/receipts/upload-receipt', upload.single('file'), async (req, res) => {
   try {
 
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
@@ -227,7 +227,7 @@ app.post('/api/documents/upload-receipt', upload.single('document'), async (req,
 });
 
 
-app.post('/api/documents/upload', upload.single('document'), async (req, res) => {
+app.post('/api/receipts/upload', upload.single('file'), async (req, res) => {
   try {
     console.log("req.file", req.file?.originalname)
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
@@ -287,7 +287,7 @@ app.post('/api/documents/upload', upload.single('document'), async (req, res) =>
   }
 });
 
-app.post('/api/documents/validate', upload.single('document'), async (req, res) => {
+app.post('/api/receipts/validate', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
 
@@ -366,7 +366,7 @@ app.post('/api/documents/validate', upload.single('document'), async (req, res) 
 });
 
 
-app.post('/api/documents/process', upload.single('document'), async (req, res) => {
+app.post('/api/receipts/process', upload.single('file'), async (req, res) => {
   try {
 
     if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
@@ -457,7 +457,7 @@ app.post('/api/documents/process', upload.single('document'), async (req, res) =
   }
 });
 
-app.get('/api/documents/receipts', async (req, res) => {
+app.get('/api/receipts/list-receipts', async (req, res) => {
   try {
     const response = await ReceiptData.find();
 
@@ -491,7 +491,7 @@ app.get('/api/documents/receipts', async (req, res) => {
 });
 
 
-app.get('/api/documents/receipts/:receiptId', async (req, res) => {
+app.get('/api/receipts/get-receipt-detail/:receiptId', async (req, res) => {
   try {
     const response = await ReceiptData.findById(req.params.receiptId);
 
