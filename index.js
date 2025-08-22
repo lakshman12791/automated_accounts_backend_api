@@ -370,10 +370,10 @@ app.post('/api/receipts/validate', upload.single('file'), async (req, res) => {
 app.post('/api/receipts/process', upload.single('file'), async (req, res) => {
   try {
 
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    if (!req.file) return res.status(400).json({ isProcessed: false, message: 'No file uploaded' });
     // Validate PDF file type
     if (req.file.mimetype !== 'application/pdf') {
-      return res.status(400).json({ message: 'Please Upload Pdf File only' });
+      return res.status(400).json({ isProcessed: false, message: 'Please Upload Pdf File only' });
     }
 
     // 1) Check whether the file exists in database
@@ -381,7 +381,7 @@ app.post('/api/receipts/process', upload.single('file'), async (req, res) => {
     console.log("existingFile", existingFile)
     if (existingFile && existingFile.is_processed === true) {
       // 2) If existing file is already processed, respond that file exists
-      return res.status(400).json({ message: 'File already exists' });
+      return res.status(400).json({ isProcessed: false, message: 'File already exists' });
     }
 
     // 3) Process the file since it is either new or not processed yet
@@ -448,7 +448,7 @@ app.post('/api/receipts/process', upload.single('file'), async (req, res) => {
     }
     const response = saveReceipts = await ReceiptData?.create(saveData)
     if (response) {
-      res.json(result);
+      res.json({ isProcessed: true, message: "File processed", result });
     }
 
     // 5) Respond with extracted data
