@@ -436,7 +436,7 @@ app.post('/api/receipts/process', upload.single('file'), async (req, res) => {
     let cleanedAmount = rawAmount.replace(/[^0-9.-]+/g, ''); // "1937.66"
 
 
-    const formattedDate = moment(result?.receipt_date).format("DD-MM-YYYY")
+    const formattedDate = moment(result?.receipt_date)?.format("DD-MM-YYYY")
 
 
 
